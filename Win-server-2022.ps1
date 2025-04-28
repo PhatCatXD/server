@@ -26,6 +26,11 @@ $SubnetMask = Read-Host "Enter the subnet mask (e.g., 255.255.255.0)"
 Write-Host "What should the default gateway be?"
 $DefaultGateway = Read-Host "Enter the default gateway (e.g., 192.168.1.1)"
 
+
+Write-Host "should the server restart after script execution? (Y/N)"
+$RestartResponse = Read-Host "Enter Y for Yes or N for No"
+
+
 # AD Installation
 Write-Host "Installing Active Directory Domain Services..."
 Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
@@ -47,4 +52,14 @@ Write-Host "Configuring DNS..."
 Add-DnsServerPrimaryZone -Name $DomainName -ZoneFile "$DomainName.dns"
 Add-DnsServerResourceRecordA -Name $ServerName -ZoneName $DomainName -IPv4Address $StaticIP
 
-Write-Host "Deployment complete. Please reboot the server to apply changes."
+
+
+
+
+if ($RestartResponse -eq "Y" -or $RestartResponse -eq "y") {
+    Write-Host "Restarting the server..."
+    Restart-Computer -Force
+    exit
+} else {
+    Write-Host "Script Execution Complete. Please restart the server manually."
+}
