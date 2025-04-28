@@ -2,33 +2,21 @@
 Write-Host "Starting Windows Server 2022 full deployment..."
 
 # Prompt for user input
-Write-Host "What should the domain name be?"
-$DomainName = Read-Host "Enter the domain name (e.g., home.arpa.local)"
+$DomainName = Read-Host "What should the domain name be? (e.g., homearpa.local)"
 
-Write-Host "What should the domain NetBIOS name be?"
-$DomainNetbiosName = Read-Host "Enter the domain NetBIOS name (e.g., homearpa)"
+$DomainNetbiosName = Read-Host "What should the domain NetBIOS name be? (e.g., HOMEARPA)"
 
-Write-Host "What should the server name be?"
-$ServerName = Read-Host "Enter the server name (e.g., Server1)"
+$ServerName = Read-Host "What should the server name be? (e.g., SRV-1)"
 
-Write-Host "What should the static IP address be?"
-$StaticIP = Read-Host "Enter the static IP address (e.g., 192.168.1.2)"
+$StaticIP = Read-Host "What should the static IP address be? (e.g., 192.168.1.2)"
 
-Write-Host "What should the DHCP lease range start address be?"
-$DHCPStartIP = Read-Host "Enter the DHCP lease range start address (e.g., 192.168.1.100)"
+$DHCPStartIP = Read-Host "What should the DHCP lease range start address be? (e.g., 192.168.1.100)"
 
-Write-Host "What should the DHCP lease range end address be?"
-$DHCPEndIP = Read-Host "Enter the DHCP lease range end address (e.g., 192.168.1.200)"
+$DHCPEndIP = Read-Host "What should the DHCP lease range end address be? (e.g., 192.168.1.200)"
 
-Write-Host "What should the subnet mask be?"
-$SubnetMask = Read-Host "Enter the subnet mask (e.g., 255.255.255.0)"
+$SubnetMask = Read-Host "What should the subnet mask be? (e.g., 255.255.255.0)"
 
-Write-Host "What should the default gateway be?"
-$DefaultGateway = Read-Host "Enter the default gateway (e.g., 192.168.1.1)"
-
-
-Write-Host "should the server restart after script execution? (Y/N)"
-$RestartResponse = Read-Host "Enter Y for Yes or N for No"
+$DefaultGateway = Read-Host "What should the default gateway be? (e.g., 192.168.1.1)"
 
 
 # AD Installation
@@ -51,15 +39,3 @@ Set-DhcpServerv4OptionValue -OptionId 3 -Value $DefaultGateway
 Write-Host "Configuring DNS..."
 Add-DnsServerPrimaryZone -Name $DomainName -ZoneFile "$DomainName.dns"
 Add-DnsServerResourceRecordA -Name $ServerName -ZoneName $DomainName -IPv4Address $StaticIP
-
-
-
-
-
-if ($RestartResponse -eq "Y" -or $RestartResponse -eq "y") {
-    Write-Host "Restarting the server..."
-    Restart-Computer -Force
-    exit
-} else {
-    Write-Host "Script Execution Complete. Please restart the server manually."
-}
