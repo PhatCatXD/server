@@ -20,13 +20,14 @@ $DefaultGateway = Read-Host "What should the default gateway be? (e.g., 192.168.
 
 $RestartResponse = Read-Host "Do you want to restart after script execution? (Y/N)"
 
-
-# AD Installation
-Write-Host "Installing Active Directory Domain Services..."
+#adds install/configuration
+# Install Active Directory Domain Services and management tools
 Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
+
+# Import the ADDSDeployment module for domain configuration
 Import-Module ADDSDeployment
 
-Write-Host "Promoting the server to a domain controller..."
+# Promote the server to a domain controller and create a new forest
 Install-ADDSForest -DomainName "$DomainName" -DomainNetbiosName "$DomainNetbiosName" -SafeModeAdministratorPassword (ConvertTo-SecureString "P@ssw0rd!" -AsPlainText -Force) -NoRebootOnCompletion -Force
 
 # DHCP Installation
