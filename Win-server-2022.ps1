@@ -14,7 +14,7 @@ $DHCPStartIP = Read-Host "What should the DHCP lease range start address be? (e.
 
 $DHCPEndIP = Read-Host "What should the DHCP lease range end address be? (e.g., 192.168.1.200)"
 
-$SubnetMask = Read-Host "What should the subnet mask be? (e.g., 255.255.255.0)"
+$SubnetMask = Read-Host "What should the subnet mask be? (e.g., 255.255.255.0 or /24)"
 
 $DefaultGateway = Read-Host "What should the default gateway be? (e.g., 192.168.1.1)"
 
@@ -38,11 +38,18 @@ Validate-IP $DHCPStartIP
 Validate-IP $DHCPEndIP
 Validate-IP $DefaultGateway
 
-# Check if the subnet mask is in the correct IPv4 format.
-# Subnet masks must also follow the same dotted-decimal notation as IP addresses.
-if ($SubnetMask -notmatch '^(\d{1,3}\.){3}\d{1,3}$') {
-    Write-Host "Invalid subnet mask format: $SubnetMask" -ForegroundColor Red
+# Check if the subnet mask is in the correct IPv4 format or CIDR notation.
+# Subnet masks can either be in dotted-decimal format (e.g., 255.255.255.0) or CIDR notation (e.g., /24).
+if ($SubnetMask -notmatch '^(\d{1,3}\.){3}\d{1,3}$' -and $SubnetMask -notmatch '^\/([0-9]|[1-2][0-9]|3[0-2])$') {
+    Write-Host "Invalid subnet mask format: $SubnetMask. Use dotted-decimal (e.g., 255.255.255.0) or CIDR (e.g., /24)." -ForegroundColor Red
     exit
+}
+
+# If CIDR notation is used, convert it to dotted-decimal format for further processing.
+if ($SubnetMask -match '^\/([0-9]|[1-2][0-9]|3[0-2])$') {
+    $CIDR = $SubnetMask.TrimStart('/')
+    $SubnetMask = (32..1 | ForEach-Object { if ($_ -le $CIDR) { '1' } else { '0' } }) -join '' -replace '.{8}', { [convert]::ToInt32($_, 2) } -join '.'
+    Write-Host "Converted CIDR notation /$CIDR to dotted-decimal format: $SubnetMask"
 }
 
 # AD Installation
