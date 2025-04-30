@@ -2,7 +2,7 @@
 Write-Host "Starting Windows Server 2022 full deployment..."
 
 # Prompt for user input
-$DomainName = Read-Host "What should the domain name be? (e.g., homearpa.local)"
+$DomainName = Read-Host "What should the domain name be? (e.g., home.arpa.local)"
 
 $DomainNetbiosName = Read-Host "What should the domain NetBIOS name be? (e.g., HOMEARPA)"
 
@@ -31,17 +31,35 @@ Install-ADDSForest -DomainName "$DomainName" -DomainNetbiosName "$DomainNetbiosN
 
 # DHCP Installation
 Write-Host "Installing DHCP Server..."
-Install-WindowsFeature -Name DHCP -IncludeManagementTools
+$dhcpInstallResult = Install-WindowsFeature -Name DHCP -IncludeManagementTools
+if ($dhcpInstallResult.Success -eq $false) {
+    Write-Host "Failed to install DHCP Server. Exiting script." -ForegroundColor Red
+    exit
+}
 
 Write-Host "Configuring DHCP scope..."
-Add-DhcpServerv4Scope -Name "DefaultScope" -StartRange $DHCPStartIP -EndRange $DHCPEndIP -SubnetMask $SubnetMask -State Active
-Set-DhcpServerv4OptionValue -OptionId 3 -Value $DefaultGateway
+try {
+    Add-DhcpServerv4Scope -Name "DefaultScope" -StartRange $DHCPStartIP -EndRange $DHCPEndIP -SubnetMask $SubnetMask -State Active
+    Set-DhcpServerv4OptionValue -OptionId 3 -Value $DefaultGateway
+    Write-Host "DHCP scope configured successfully."
+} catch {
+    Write-Host "Error configuring DHCP scope: $_" -ForegroundColor Red
+    exit
+}
 
 # DNS Configuration
-Write-Host "Configuring DNS..."
-Add-DnsServerPrimaryZone -Name $DomainName -ZoneFile "$DomainName.dns"
+Write-Host "Setting up DNS server..."
+# Create a forward lookup zone for the domain
+Add-DnsServerPrimaryZone -Name $DomainName
+# Add an A record for the server in the forward lookup zone
 Add-DnsServerResourceRecordA -Name $ServerName -ZoneName $DomainName -IPv4Address $StaticIP
 
+# Reverse Lookup Zone Configuration
+Write-Host "Setting up reverse lookup zone..."
+# Calculate the reverse network ID from the static IP address
+$ReverseNetworkId = ($StaticIP -split '\.')[0..2] -join '.'
+# Create a reverse lookup zone for the calculated network ID
+Add-DnsServerPrimaryZone -NetworkId "$ReverseNetworkId.0"
 
 
 if ($RestartResponse -eq "Y" -or $RestartResponse -eq "y") {
