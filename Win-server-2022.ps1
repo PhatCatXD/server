@@ -20,15 +20,46 @@ $DefaultGateway = Read-Host "What should the default gateway be? (e.g., 192.168.
 
 $RestartResponse = Read-Host "Do you want to restart after script execution? (Y/N)"
 
-#adds install/configuration
-# Install Active Directory Domain Services and management tools
+# Validate IP address format
+function Validate-IP {
+    param ([string]$IPAddress)
+    # This function checks if the provided IP address matches the standard IPv4 format.
+    # If the format is invalid, it displays an error message and terminates the script.
+    if ($IPAddress -notmatch '^(\d{1,3}\.){3}\d{1,3}$') {
+        Write-Host "Invalid IP address format: $IPAddress" -ForegroundColor Red
+        exit
+    }
+}
+
+# Validate user inputs
+# Ensure the provided static IP, DHCP range, and default gateway follow the correct IPv4 format.
+Validate-IP $StaticIP
+Validate-IP $DHCPStartIP
+Validate-IP $DHCPEndIP
+Validate-IP $DefaultGateway
+
+# Check if the subnet mask is in the correct IPv4 format.
+# Subnet masks must also follow the same dotted-decimal notation as IP addresses.
+if ($SubnetMask -notmatch '^(\d{1,3}\.){3}\d{1,3}$') {
+    Write-Host "Invalid subnet mask format: $SubnetMask" -ForegroundColor Red
+    exit
+}
+
+# AD Installation
+Write-Host "Installing Active Directory Domain Services..."
 Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
 
 # Import the ADDSDeployment module for domain configuration
 Import-Module ADDSDeployment
 
-# Promote the server to a domain controller and create a new forest
-Install-ADDSForest -DomainName "$DomainName" -DomainNetbiosName "$DomainNetbiosName" -SafeModeAdministratorPassword (ConvertTo-SecureString "P@ssw0rd!" -AsPlainText -Force) -NoRebootOnCompletion -Force
+Write-Host "Promoting the server to a domain controller..."
+try {
+    Install-ADDSForest -DomainName "$DomainName" -DomainNetbiosName "$DomainNetbiosName" -SafeModeAdministratorPassword (ConvertTo-SecureString "P@ssw0rd!" -AsPlainText -Force) -NoRebootOnCompletion -Force
+    Write-Host "Domain controller promotion completed successfully."
+} catch {
+    Write-Host "Error during domain controller promotion: $_" -ForegroundColor Red
+    exit
+}
 
 # DHCP Installation
 Write-Host "Installing DHCP Server..."
@@ -57,11 +88,16 @@ Add-DnsServerResourceRecordA -Name $ServerName -ZoneName $DomainName -IPv4Addres
 
 # Reverse Lookup Zone Configuration
 Write-Host "Setting up reverse lookup zone..."
-# Calculate the reverse network ID from the static IP address
-$ReverseNetworkId = ($StaticIP -split '\.')[0..2] -join '.'
-# Create a reverse lookup zone for the calculated network ID
-Add-DnsServerPrimaryZone -NetworkId "$ReverseNetworkId.0"
-
+try {
+    # Calculate the reverse network ID from the static IP address
+    $ReverseNetworkId = ($StaticIP -split '\.')[0..2] -join '.'
+    # Create a reverse lookup zone for the calculated network ID
+    Add-DnsServerPrimaryZone -NetworkId "$ReverseNetworkId"
+    Write-Host "Reverse lookup zone configured successfully."
+} catch {
+    Write-Host "Error setting up reverse lookup zone: $_" -ForegroundColor Red
+    exit
+}
 
 if ($RestartResponse -eq "Y" -or $RestartResponse -eq "y") {
     Write-Host "Restarting the server..."
