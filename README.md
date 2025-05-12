@@ -12,11 +12,14 @@ This PowerShell script sets up **DHCP**, **DNS**, and an **Active Directory Fore
 
 You can run this script directly from PowerShell without downloading it manually:
 
+# "the script"
 ```powershell
 Set-ExecutionPolicy RemoteSigned -Scope Process -Force
 iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/FatCat112/Win-server-2022/main/Win-server-2022.ps1'))
 ```
 
-```
+
+post execution audit log
+```powershell
 iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/FatCat112/Win-server-2022/refs/heads/main/Post-execution-audit-log.ps1'))
 ```
