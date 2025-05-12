@@ -22,5 +22,11 @@ iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercon
 post execution audit log
 ```powershell
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/FatCat112/Win-server-2022/main/Post-execution-audit-log.ps1" -OutFile "$env:TEMP\Post-execution-audit-log.ps1"; Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; & "$env:TEMP\Post-execution-audit-log.ps1"
+```
 
+
+
+temp gist invoke
+```
+Invoke-WebRequest -Uri "https://gist.githubusercontent.com/FatCat112/b582796c10037e2049e8695f76bd3d7a/raw/Post-execution-audit-log.ps1" -OutFile "$env:TEMP\Post-execution-audit-log.ps1"; Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; & "$env:TEMP\Post-execution-audit-log.ps1"
 ```
