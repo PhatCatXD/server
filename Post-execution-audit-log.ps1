@@ -44,10 +44,12 @@ Get-DnsClientServerAddress | Format-Table InterfaceAlias, ServerAddresses
 # Check if joined to a domain
 $domain = (Get-WmiObject Win32_ComputerSystem).Domain
 $role = (Get-WmiObject Win32_ComputerSystem).DomainRole
+
 if ($role -ge 4) {
     Write-Host "✔ Server is joined to domain: $domain (Role: $role)" -ForegroundColor Green
 } else {
     Write-Host "✘ Server is NOT joined to a domain (Current domain: $domain)" -ForegroundColor Red
 }
+
 
 Stop-Transcript
