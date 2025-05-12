@@ -15,3 +15,8 @@ You can run this script directly from PowerShell without downloading it manually
 ```powershell
 Set-ExecutionPolicy RemoteSigned -Scope Process -Force
 iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/FatCat112/Win-server-2022/main/Win-server-2022.ps1'))
+```
+
+```
+iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/FatCat112/Win-server-2022/refs/heads/main/Post-execution-audit-log.ps1'))
+```
