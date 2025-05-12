@@ -1,4 +1,4 @@
-$LogFile = "C:\SetupLogs\WinServer2022-PostCheck.log"
+$LogFile = "C:\SetupLogs\Post-Execution-Audit.log"
 New-Item -ItemType Directory -Path (Split-Path $LogFile) -Force | Out-Null
 Start-Transcript -Path $LogFile -Append
 
@@ -50,6 +50,5 @@ if ($role -ge 4) {
 } else {
     Write-Host "✘ Server is NOT joined to a domain (Current domain: $domain)" -ForegroundColor Red
 }
-
 
 Stop-Transcript
