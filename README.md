@@ -21,7 +21,5 @@ iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercon
 
 post execution audit log
 ```powershell
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/FatCat112/Win-server-2022/main/Post-execution.ps1' -OutFile Post-execution.ps1
-.\Post-execution.ps1
-'))
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/FatCat112/Win-server-2022/refs/heads/main/Post-execution-audit-log.ps1' -OutFile Post-execution.ps1.\Post-execution.ps1'))
 ```
