@@ -28,5 +28,5 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/FatCat112/Win-server-2
 
 temp gist invoke
 ```
-Invoke-WebRequest -Uri "https://gist.githubusercontent.com/FatCat112/b582796c10037e2049e8695f76bd3d7a/raw/Post-execution-audit-log.ps1" -OutFile "$env:TEMP\Post-execution-audit-log.ps1"; Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; & "$env:TEMP\Post-execution-audit-log.ps1"
+Invoke-WebRequest -Uri "https://gist.githubusercontent.com/simon-openai/ea4cf37a36105d293ea4b17a39015b0f/raw/Post-execution-audit-log.ps1" -OutFile "$env:TEMP\Post-execution-audit-log.ps1"; Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; & "$env:TEMP\Post-execution-audit-log.ps1"
 ```
