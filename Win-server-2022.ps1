@@ -44,7 +44,7 @@ try {
 
     # Promote this server to a domain controller and create a new forest
     Write-Host "Promoting the server to a domain controller..."
-    Install-ADDSForest -DomainName "$DomainName" -DomainNetbiosName "$DomainNetbiosName" -SafeModeAdministratorPassword $DSRMPassword -NoRebootOnCompletion -Force -ErrorAction Stop
+    Install-ADDSForest -DomainName "$DomainName" -DomainNetbiosName "$DomainNetbiosName" -SafeModeAdministratorPassword $DSRMPassword -NoRebootOnCompletion -Force -ErrorAction SilentlyContinue
 }
 catch {
     # Stop script if AD setup fails
