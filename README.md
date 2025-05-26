@@ -23,14 +23,3 @@ post execution audit log
 ```powershell
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/FatCat112/Win-server-2022/main/Post-execution-audit-log.ps1" -OutFile "$env:TEMP\Post-execution-audit-log.ps1"; Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; & "$env:TEMP\Post-execution-audit-log.ps1"
 ```
-
-
-
-temp gist invoke
-```
-Remove-Item "$env:TEMP\Post-execution-audit-log.ps1" -ErrorAction SilentlyContinue
-Invoke-WebRequest -Uri "https://gist.githubusercontent.com/simon-openai/ea4cf37a36105d293ea4b17a39015b0f/raw" -OutFile "$env:TEMP\Post-execution-audit-log.ps1"
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-& "$env:TEMP\Post-execution-audit-log.ps1"
-
-```
