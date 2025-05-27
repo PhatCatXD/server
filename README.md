@@ -1,26 +1,41 @@
-# Win-server-2022
+# 🛠️ Windows Server 2022 Auto-Deployment Script
 
-This PowerShell script sets up **DHCP**, **DNS**, and an **Active Directory Forest** on a clean install of **Windows Server 2022**.
+This repository contains a PowerShell automation script for deploying a fully functional Windows Server 2022 environment. It configures and installs:
 
-## ⚠️ Requirements
-- Must be run in an **elevated PowerShell window (Run as Administrator)**
-- Designed for a **fresh Windows Server 2022 installation**
-- Script is **interactive** and will prompt for domain, IP, and network configuration
-- Some post-configuration (like joining clients to the domain) must be done manually
+- ✅ Active Directory Domain Services (AD DS)
+- ✅ Domain promotion
+- ✅ DNS Server
+- ✅ DHCP Server
+- ✅ Post-installation auditing
 
-## 🚀 Run the Script
+The script is designed to run in phases across reboots using a registry checkpoint system.
 
-You can run this script directly from PowerShell without downloading it manually:
+---
 
-# "the script"
+## 📦 Features
+
+- Automatic installation of required Windows Server roles and features
+- Domain creation and promotion to Domain Controller
+- DNS zone and reverse zone configuration
+- DHCP scope setup with automatic lease and option setup
+- Auto-resume after reboot using PowerShell and registry tracking
+- Post-deployment audit script to verify services
+
+---
+
+## ⚙️ Prerequisites
+
+- Windows Server 2022 (GUI or Core)
+- Administrator privileges
+- Internet access (to download script remotely if using `iex`)
+- Execution policy set to allow script execution
+
+---
+
+## 🚀 Quick Start
+
+You can run the full script using this one-liner:
+
 ```powershell
 Set-ExecutionPolicy RemoteSigned -Scope Process -Force
-iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/FatCat112/Win-server-2022/main/Win-server-2022.ps1'))
-```
-
-
-post execution audit log
-```powershell
-Set-ExecutionPolicy RemoteSigned -Scope Process -Force
-iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/FatCat112/Win-server-2022/main/Post-execution-audit-log.ps1'))
-```
+iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/PhatCatXD/server/main/Win-server-2022.ps1'))
