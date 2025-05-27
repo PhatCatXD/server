@@ -11,7 +11,11 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 
 # Prompt for user input to configure domain, network, and DHCP details
 $DomainName = Read-Host "What should the domain name be? (e.g., home.arpa.local)"
-$DomainNetbiosName = Read-Host "What should the domain NetBIOS name be?"
+$DomainNetbiosName = Read-Host "What should the domain NetBIOS name be? (press Enter to auto-generate)"
+if ([string]::IsNullOrWhiteSpace($DomainNetbiosName)) {
+    $DomainNetbiosName = ($DomainName -split '\.')[0].ToUpper()
+    Write-Host "Auto-generated NetBIOS name: $DomainNetbiosName"
+}
 $DSRMPassword = Read-Host "What should the Directory Services Restore Mode (DSRM) password be?" -AsSecureString
 $ReverseLookupZoneNetworkID = Read-Host "What should the reverse lookup zone network ID be? (e.g., 192.168.1.0)"
 $ServerName = Read-Host "What should the server name be? (e.g., SRV-1)"
@@ -64,6 +68,11 @@ catch {
 Write-Host "`n========== DNS Configuration =========="
 
 try {
+    # Install and import DNS Server tools
+    Write-Host "Installing DNS Server role..."
+    Install-WindowsFeature -Name DNS -IncludeManagementTools -ErrorAction Stop
+    Import-Module DnsServer -ErrorAction Stop
+
     # Create the forward DNS zone if it doesn't already exist
     Write-Host "Setting up forward DNS zone..."
     if (-not (Get-DnsServerZone -Name $DomainName -ErrorAction SilentlyContinue)) {
@@ -76,17 +85,16 @@ try {
 
     # Check for existing reverse DNS zone and create it if needed
     Write-Host "Setting up reverse DNS zone..."
-    $ReverseZoneCheck = "$($ReverseLookupZoneNetworkID -replace '\.0$', '').in-addr.arpa"
-    if (-not (Get-DnsServerZone -Name $ReverseZoneCheck -ErrorAction SilentlyContinue)) {
+    $Octets = $ReverseLookupZoneNetworkID -split '\.'
+    $ReverseZoneName = "$($Octets[2]).$($Octets[1]).$($Octets[0]).in-addr.arpa"
+    if (-not (Get-DnsServerZone -Name $ReverseZoneName -ErrorAction SilentlyContinue)) {
         Add-DnsServerPrimaryZone -NetworkID $ReverseLookupZoneNetworkID -ReplicationScope Domain -DynamicUpdate Secure -ErrorAction Stop
     }
 
     # Add a PTR record for the server for reverse DNS lookups
     Write-Host "Adding PTR record for this server..."
-    $IPParts = $StaticIP -split '\.'
-    $LastOctet = $IPParts[3]
-    $ReverseZoneName = "$($IPParts[2]).$($IPParts[1]).$($IPParts[0])"
-    Add-DnsServerResourceRecordPtr -Name $LastOctet -ZoneName "$ReverseZoneName.in-addr.arpa" -PtrDomainName "$ServerName.$DomainName" -ErrorAction Stop
+    $LastOctet = ($StaticIP -split '\.')[3]
+    Add-DnsServerResourceRecordPtr -Name $LastOctet -ZoneName $ReverseZoneName -PtrDomainName "$ServerName.$DomainName" -ErrorAction Stop
 
     # Verify that the PTR record is resolvable
     Write-Host "Validating PTR record..."
