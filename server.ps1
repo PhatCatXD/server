@@ -1,5 +1,5 @@
 # =============================
-# Windows Server 2022 Deployment Script (Auto Mode)
+# Windows Server 2022 Deployment Script (Full Auto Mode)
 # =============================
 
 Write-Host "Starting Windows Server 2022 full deployment..." -ForegroundColor Cyan
@@ -13,7 +13,7 @@ Write-Host "Starting Windows Server 2022 full deployment..." -ForegroundColor Cy
 
 # Relaunch as admin if not already elevated
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("Administrator")) {
-    Start-Process powershell.exe "-ExecutionPolicy Bypass -NoProfile -File `"$PSCommandPath`"" -Verb RunAs
+    Start-Process powershell.exe "-ExecutionPolicy Bypass -NoProfile -File `\"$PSCommandPath`\"" -Verb RunAs
     exit
 }
 
@@ -46,7 +46,7 @@ $Phase = Get-ItemPropertyValue -Path $PhaseRegKey -Name SetupPhase -ErrorAction 
 # Ensure script auto-runs after reboot
 if (-not (Get-ItemProperty -Path $RunKeyPath -Name $RunKeyName -ErrorAction SilentlyContinue)) {
     $escapedPath = $ScriptPath -replace '"', '""'
-    Set-ItemProperty -Path $RunKeyPath -Name $RunKeyName -Value "powershell.exe -ExecutionPolicy Bypass -NoProfile -File `"$escapedPath`""
+    Set-ItemProperty -Path $RunKeyPath -Name $RunKeyName -Value "powershell.exe -ExecutionPolicy Bypass -NoProfile -File `\"$escapedPath`\""
 }
 
 
@@ -70,6 +70,13 @@ function Collect-UserInput {
     $SubnetMask        = Read-Host "Subnet mask"
     $DefaultGateway    = Read-Host "Default gateway"
 
+    # Optional auto-login setup
+    $AutoLoginPassword = Read-Host "To enable auto-login after reboot, enter current user's password" -AsSecureString
+    $AutoLoginPlain    = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
+        [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($AutoLoginPassword)
+    )
+
+    # Save all values
     Set-ItemProperty -Path $PhaseRegKey -Name DomainName        -Value $DomainName
     Set-ItemProperty -Path $PhaseRegKey -Name DomainNetbiosName -Value $DomainNetbiosName
     Set-ItemProperty -Path $PhaseRegKey -Name DSRMPassword      -Value ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($DSRMPassword)))
@@ -80,6 +87,14 @@ function Collect-UserInput {
     Set-ItemProperty -Path $PhaseRegKey -Name DHCPEndIP         -Value $DHCPEndIP
     Set-ItemProperty -Path $PhaseRegKey -Name SubnetMask        -Value $SubnetMask
     Set-ItemProperty -Path $PhaseRegKey -Name DefaultGateway    -Value $DefaultGateway
+
+    # Enable auto-login
+    Write-Host "`nEnabling temporary auto-login for '$env:USERNAME'..." -ForegroundColor DarkCyan
+    $WinlogonKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+    Set-ItemProperty -Path $WinlogonKey -Name "AutoAdminLogon"    -Value "1"
+    Set-ItemProperty -Path $WinlogonKey -Name "DefaultUsername"   -Value $env:USERNAME
+    Set-ItemProperty -Path $WinlogonKey -Name "DefaultDomainName" -Value $env:USERDOMAIN
+    Set-ItemProperty -Path $WinlogonKey -Name "DefaultPassword"   -Value $AutoLoginPlain
 
     Set-PhaseCheckpoint "InstallRoles"
 }
@@ -157,7 +172,7 @@ function Configure-DNS {
 
 
 # =============================
-# DHCP Configuration
+# DHCP Configuration + Cleanup
 # =============================
 
 function Configure-DHCP {
@@ -176,8 +191,15 @@ function Configure-DHCP {
 
     Write-Host "`n========== Finished ==========" -ForegroundColor Green
 
+    # Cleanup Run key + deployment data
     Remove-ItemProperty -Path $RunKeyPath -Name $RunKeyName -ErrorAction SilentlyContinue
     Remove-Item -Path $PhaseRegKey -Recurse -Force -ErrorAction SilentlyContinue
+
+    # Disable auto-login
+    Write-Host "`nDisabling temporary auto-login for security..." -ForegroundColor DarkCyan
+    $WinlogonKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+    Remove-ItemProperty -Path $WinlogonKey -Name "DefaultPassword" -ErrorAction SilentlyContinue
+    Set-ItemProperty    -Path $WinlogonKey -Name "AutoAdminLogon" -Value "0"
 }
 
 
@@ -190,3 +212,8 @@ function Configure-DHCP {
 switch ($Phase) {
     "Init"          { Collect-UserInput }
     "InstallRoles"  { Install-Roles }
+    "Promote"       { Configure-AD }
+    "DNSConfig"     { Configure-DNS }
+    "DHCPConfig"    { Configure-DHCP }
+    default         { Write-Host "`n❌ Unknown phase. Exiting..." -ForegroundColor Red; exit 1 }
+}
