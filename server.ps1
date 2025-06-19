@@ -125,3 +125,25 @@ switch ($Phase) {
     "DHCPConfig"  { Configure-DHCP }
     default       { Write-Host "\n❌ Unknown phase. Exiting..." -ForegroundColor Red; exit 1 }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#https://chatgpt.com/share/6853b5c2-8560-800e-a2d0-7db0008b327f
