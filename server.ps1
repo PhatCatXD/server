@@ -45,9 +45,11 @@ $Phase = Get-ItemPropertyValue -Path $PhaseRegKey -Name SetupPhase -ErrorAction 
 
 # Ensure script auto-runs after reboot
 if (-not (Get-ItemProperty -Path $RunKeyPath -Name $RunKeyName -ErrorAction SilentlyContinue)) {
-    $escapedPath = $ScriptPath -replace '"', '""'
-    Set-ItemProperty -Path $RunKeyPath -Name $RunKeyName -Value "powershell.exe -ExecutionPolicy Bypass -NoProfile -File `\"$escapedPath`\""
+    $escapedScriptPath = "`"$ScriptPath`""
+    $command = "powershell -ExecutionPolicy Bypass -File $escapedScriptPath"
+    Set-ItemProperty -Path $RunKeyPath -Name $RunKeyName -Value $command
 }
+
 
 
 
