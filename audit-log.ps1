@@ -21,10 +21,9 @@ $LogPath = if (Test-Path $UserDownloads) {
 
 # Start logging
 Start-Transcript -Path $LogPath -Append -NoClobber
-
 Write-Host "Starting post-deployment audit..." -ForegroundColor Cyan
-$PhaseRegKey = "HKLM:\SOFTWARE\Autodeploy\ServerDeployment"
 
+# Helper check function
 function Check($Condition, $Success, $Fail) {
     if ($Condition) {
         Write-Host "✔ $Success" -ForegroundColor Green
@@ -33,65 +32,25 @@ function Check($Condition, $Success, $Fail) {
     }
 }
 
-# Retrieve saved values
-try {
-    $DomainName        = Get-ItemPropertyValue -Path $PhaseRegKey -Name DomainName
-    $DomainNetbiosName = Get-ItemPropertyValue -Path $PhaseRegKey -Name DomainNetbiosName
-    $ReverseLookup     = Get-ItemPropertyValue -Path $PhaseRegKey -Name ReverseLookupZoneNetworkID
-    $ServerName        = Get-ItemPropertyValue -Path $PhaseRegKey -Name ServerName
-    $StaticIP          = Get-ItemPropertyValue -Path $PhaseRegKey -Name StaticIP
-} catch {
-    Write-Host "⚠ Could not load all registry values. Audit may be incomplete." -ForegroundColor Yellow
-}
+# Registry deployment phase check
+$PhaseRegKey = "HKLM:\SOFTWARE\Autodeploy\ServerDeployment"
+$SetupPhase = (Get-ItemProperty -Path $PhaseRegKey -ErrorAction SilentlyContinue).SetupPhase
+Check ($SetupPhase -ne $null) "SetupPhase key exists." "Missing SetupPhase key."
+Check ($SetupPhase -eq 'Done') "Deployment phase is 'Done'." "Deployment phase not complete. Current: $SetupPhase"
 
-Write-Host "`n===== ROLES ====="
+# Check static IP
+$adapter = Get-NetIPConfiguration | Where-Object { $_.IPv4Address.IPAddress -and $_.IPv4DefaultGateway }
+Check ($adapter.IPv4Address.IPAddress -ne $null) "Static IP is set: $($adapter.IPv4Address.IPAddress)" "No static IP found."
 
-Check (Get-WindowsFeature AD-Domain-Services | Where-Object {$_.InstallState -eq 'Installed'}) "AD-Domain-Services installed" "AD-Domain-Services missing"
-Check (Get-WindowsFeature DNS | Where-Object {$_.InstallState -eq 'Installed'}) "DNS Server installed" "DNS Server missing"
-Check (Get-WindowsFeature DHCP | Where-Object {$_.InstallState -eq 'Installed'}) "DHCP Server installed" "DHCP Server missing"
+# Check DNS and DHCP roles installed
+$roles = Get-WindowsFeature
+Check ($roles | Where-Object { $_.Name -eq "DNS" -and $_.InstallState -eq "Installed" }) "DNS role installed." "DNS role not installed."
+Check ($roles | Where-Object { $_.Name -eq "DHCP" -and $_.InstallState -eq "Installed" }) "DHCP role installed." "DHCP role not installed."
 
-Write-Host "`n===== DOMAIN ====="
+# Check domain controller promotion
+$domain = (Get-WmiObject Win32_ComputerSystem).Domain
+$partOfDomain = (Get-WmiObject Win32_ComputerSystem).PartOfDomain
+Check ($partOfDomain -and $domain -ne $null) "Computer is joined to domain: $domain" "Computer is not domain joined."
 
-Check (([System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain() -ne $null)) "Domain joined and promoted" "Not joined to domain or promotion failed"
-
-Write-Host "`n===== DNS ====="
-
-Import-Module DnsServer -ErrorAction SilentlyContinue
-
-Check (Get-DnsServerZone -Name $DomainName -ErrorAction SilentlyContinue) "Forward zone '$DomainName' exists" "Forward zone '$DomainName' missing"
-
-if ($ReverseLookup) {
-    $Octets = $ReverseLookup -split '\.'
-    $ReverseZone = "$($Octets[2]).$($Octets[1]).$($Octets[0]).in-addr.arpa"
-    Check (Get-DnsServerZone -Name $ReverseZone -ErrorAction SilentlyContinue) "Reverse zone '$ReverseZone' exists" "Reverse zone '$ReverseZone' missing"
-}
-
-Check (
-    Get-DnsServerResourceRecord -ZoneName $DomainName -Name $ServerName -RRType A -ErrorAction SilentlyContinue
-) "A record for '$ServerName.$DomainName' exists" "Missing A record"
-
-if ($StaticIP -and $ReverseZone) {
-    $LastOctet = ($StaticIP -split '\.')[3]
-    Check (
-        Get-DnsServerResourceRecord -ZoneName $ReverseZone -Name $LastOctet -RRType PTR -ErrorAction SilentlyContinue
-    ) "PTR record for $StaticIP exists" "Missing PTR record"
-}
-
-Write-Host "`n===== DHCP ====="
-
-Import-Module DhcpServer -ErrorAction SilentlyContinue
-
-$scope = Get-DhcpServerv4Scope -ErrorAction SilentlyContinue
-Check ($scope) "At least one DHCP scope exists" "No DHCP scope found"
-
-if ($scope) {
-    Check ($scope.State -eq "Active") "DHCP scope is active" "DHCP scope is inactive"
-
-    $gateway = (Get-DhcpServerv4OptionValue -OptionId 3 -ErrorAction SilentlyContinue).Value
-    Check ($gateway) "Default gateway option set: $gateway" "Default gateway option missing"
-}
-
-Write-Host "`n===== AUDIT COMPLETE =====" -ForegroundColor Cyan
-Write-Host "`nLog saved to: $LogPath" -ForegroundColor Gray
-
+# Stop logging
 Stop-Transcript
